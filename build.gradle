@@ -1,0 +1,89 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
+apply plugin: 'maven'
+apply plugin: 'base'
+
+allprojects {
+	apply plugin: 'idea'
+
+	description = 'TeamCity Highlighter Plugin'
+	group = 'org.jetbrains.teamcity.plugins'
+	version = '1.0'
+
+    repositories {
+        mavenCentral()
+        maven {
+            url "http://repository.jetbrains.com/all"
+        }
+    }
+}
+
+project.ext {
+	teamcityVersion = '9.0.3'
+	springVersion = "3.1.2.RELEASE"
+}
+
+subprojects {
+	apply plugin: 'java'
+
+	sourceCompatibility = '1.7'
+	targetCompatibility = '1.7'
+
+	uploadArchives.enabled = false
+
+	configurations {
+		provided
+		compile.extendsFrom provided
+	}
+
+	dependencies {
+		compile "com.intellij:annotations:7.0.3"
+		compile "org.apache.tomcat:servlet-api:6.0.36"
+        compile "org.jetbrains.teamcity:common-api:${teamcityVersion}"
+		compile "org.springframework:spring-webmvc:${springVersion}"
+        testCompile "com.google.guava:guava:17.0"
+        testCompile "junit:junit:4.11"
+        testCompile "org.mockito:mockito-all:1.10.19"
+        testCompile "org.springframework:spring-test:${springVersion}"
+	}
+}
+
+project('server') {
+	dependencies {
+		compile ("org.jetbrains.teamcity:server-api:${teamcityVersion}") {
+			exclude group: 'eu.bitwalker.useragentutils', module: 'UserAgentUtils'
+		}
+	}
+	task zip(type: Zip, dependsOn: jar) {
+		from(jar) {
+			into("${rootProject.name}/lib")
+			rename('.*', "${rootProject.name}-server.jar")
+		}
+	}
+	artifacts {
+		archives zip
+	}
+}
+
+task dist(type: Zip, dependsOn: [':server:assemble']) {
+	classifier = project.teamcityVersion
+	from('src/dist') {
+		filter(ReplaceTokens, tokens: [version: "${version}-${teamcityVersion}" as String])
+	}
+	from(subprojects.configurations.archives) {
+		exclude 'commons*.jar'
+		into('server')
+	}
+	from(project(':server').jar) {
+		into('server')
+		rename('.*', "${rootProject.name}-server.jar")
+	}
+}
+
+artifacts {
+	archives dist
+}
+
+wrapper {
+	gradleVersion = '2.1'
+}
