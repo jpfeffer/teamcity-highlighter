@@ -1,7 +1,9 @@
 package com.jpfeffer.teamcity.highlighter.extension;
 
-import com.google.common.collect.ImmutableMap;
+import com.jpfeffer.teamcity.highlighter.domain.Block;
+import com.jpfeffer.teamcity.highlighter.domain.HighlightData;
 import com.jpfeffer.teamcity.highlighter.domain.Level;
+import com.jpfeffer.teamcity.highlighter.domain.Order;
 import com.jpfeffer.teamcity.highlighter.model.HighlightDataModel;
 import com.jpfeffer.teamcity.highlighter.service.DataStoreService;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -14,8 +16,10 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -36,12 +40,8 @@ public class HighlighterPageExtensionTest
 {
     private HighlighterPageExtension highlighterPageExtension;
 
-    private static final Map<String, String> HIGHLIGHT_TEST_MAP = new HashMap<>();
-    static
-    {
-        HIGHLIGHT_TEST_MAP.put("key1", "val1");
-        HIGHLIGHT_TEST_MAP.put("key2::error", "val2::val3");
-    }
+    private static final HighlightData DATA_1 = new HighlightData("key1", Arrays.asList("val1"), Level.info, Block.expanded, Order.none);
+    private static final HighlightData DATA_2 = new HighlightData("key2", Arrays.asList("val2", "val3"), Level.error, Block.expanded, Order.none);
 
     @Mock
     private PagePlaces pagePlaces;
@@ -56,14 +56,19 @@ public class HighlighterPageExtensionTest
     @Mock
     private HighlightDataModel model;
 
+    private final List<HighlightData> highlightData = Arrays.asList(DATA_1, DATA_2);
+
     @Before
     public void setUp() throws Exception
     {
-        highlighterPageExtension = new HighlighterPageExtension(pagePlaces, sBuildServer);
-        setField(highlighterPageExtension, "dataStoreService", dataStoreService);
+        highlighterPageExtension = new HighlighterPageExtension(pagePlaces, sBuildServer, null);
+        final HashMap<String, DataStoreService> serviceHashMap = new HashMap<>();
+        serviceHashMap.put("ds", dataStoreService);
+        setField(highlighterPageExtension, "dataStoreServices", serviceHashMap);
+        highlighterPageExtension.setActiveDataStoreName("ds");
         when(httpServletRequest.getParameter(eq("buildId"))).thenReturn("1234");
         when(sBuildServer.findBuildInstanceById(eq(Long.valueOf("1234")))).thenReturn(sBuild);
-        when(dataStoreService.loadData(eq(sBuild))).thenReturn(HIGHLIGHT_TEST_MAP);
+        when(dataStoreService.loadData(eq(sBuild))).thenReturn(highlightData);
     }
 
     @Test
@@ -86,7 +91,7 @@ public class HighlighterPageExtensionTest
     @Test
     public void testIsAvailable() throws Exception
     {
-        when(dataStoreService.loadData(eq(sBuild))).thenReturn(ImmutableMap.of("Intermittent Tests::warn", "testA::testB"));
+        when(dataStoreService.loadData(eq(sBuild))).thenReturn(highlightData);
         final boolean available = highlighterPageExtension.isAvailable(httpServletRequest);
 
         verify(sBuildServer).findBuildInstanceById(1234);
@@ -97,7 +102,7 @@ public class HighlighterPageExtensionTest
     @Test
     public void testIsAvailable_not_available() throws Exception
     {
-        when(dataStoreService.loadData(any(SBuild.class))).thenReturn(new HashMap<>(0));
+        when(dataStoreService.loadData(any(SBuild.class))).thenReturn(new ArrayList(0));
         final boolean available = highlighterPageExtension.isAvailable(httpServletRequest);
 
         verify(sBuildServer).findBuildInstanceById(1234);

@@ -1,18 +1,24 @@
 package com.jpfeffer.teamcity.highlighter.service;
 
 import com.jpfeffer.teamcity.highlighter.domain.Block;
-import com.jpfeffer.teamcity.highlighter.domain.HighlightDataMap;
+import com.jpfeffer.teamcity.highlighter.domain.HighlightData;
 import com.jpfeffer.teamcity.highlighter.domain.Level;
-import com.jpfeffer.teamcity.highlighter.message.HighlightMessageKey;
-import com.jpfeffer.teamcity.highlighter.util.Util;
+import com.jpfeffer.teamcity.highlighter.domain.Order;
+import com.jpfeffer.teamcity.highlighter.util.CustomStorageMap;
 import jetbrains.buildServer.serverSide.CustomDataStorage;
 import jetbrains.buildServer.serverSide.SBuild;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
+
+import static com.jpfeffer.teamcity.highlighter.util.CustomStorageMap.*;
+import static com.jpfeffer.teamcity.highlighter.util.Util.valueOfOrDefault;
 
 /**
  * <p>{@link DataStoreService} that implements saving/loading of custom data in {@link Map} format using TeamCity's
@@ -23,54 +29,72 @@ import java.util.logging.Logger;
  * TeamCityCustomDataStoreService#STORAGE_PREFIX} and currently running {@link SBuild} instance.</p>
  *
  * <p>Message data don't get overridden for the same {@link com.jpfeffer.teamcity.highlighter.message.HighlightMessageKey#title}
- * but their text will get grouped together.</p>
+ * but their text will be grouped together.</p>
+ *
+ * <p>Copyright © 2000-2009, jpfeffer, Inc.</p>
  *
  * @author jpfeffer
+ * @version 2012.2
  * @since 1/26/15
  */
-public class TeamCityCustomDataStoreService implements DataStoreService<Map<String, String>>
+public class TeamCityCustomDataStoreService implements DataStoreService<HighlightData>
 {
     private static final Logger LOG = Logger.getLogger(TeamCityCustomDataStoreService.class.getName());
 
     private static final String STORAGE_PREFIX = "hlght_ds_";
 
     @Override
-    public void saveData(@NotNull SBuild sBuild, Map<String, String> data)
+    public void saveData(@NotNull SBuild sBuild, HighlightData data)
     {
         if (sBuild == null || sBuild.getBuildType() == null)
         {
-            LOG.warning("Couldn't save message as build or associated build type was null.");
+            LOG.warning("Couldn't save data as build or associated build type was null.");
             return;
         }
-        if (data == null || data.isEmpty())
+        if (data == null)
         {
-            LOG.warning("Couldn't save message as it was empty.");
+            LOG.warning("Couldn't save data as it was empty.");
             return;
         }
-        if (data.get(HighlightMessageKey.title.name()) == null)
+        if (data.getKey() == null)
         {
-            LOG.warning("Couldn't save message as the message title was not given");
+            LOG.warning("Couldn't save data as the message title was not given");
             return;
         }
 
         final CustomDataStorage customDataStorage = sBuild.getBuildType().getCustomDataStorage(STORAGE_PREFIX + sBuild.getBuildId());
-        final String levelParam = data.get(HighlightMessageKey.level.name());
-        final String blockParam = data.get(HighlightMessageKey.block.name());
-        final HighlightDataMap highlightDataMap = new HighlightDataMap(loadData(sBuild),
-                                                                       Util.valueOfOrNull(levelParam, Level.class),
-                                                                       Util.valueOfOrNull(blockParam, Block.class));
-        highlightDataMap.put(data.get(HighlightMessageKey.title.name()), data.get(HighlightMessageKey.text.name()));
+        final CustomStorageMap customStorageMap = new CustomStorageMap(loadDataInternal(sBuild),
+                                                                       data.getLevel(),
+                                                                       data.getBlock(),
+                                                                       data.getOrder());
+        customStorageMap.put(data.getKey(), data.getSingleValue());
 
-        final Set<String> keys = highlightDataMap.keySet();
+        final Set<String> keys = customStorageMap.keySet();
         for (String key : keys)
         {
-            customDataStorage.putValue(key, highlightDataMap.get(key));
+            customDataStorage.putValue(key, customStorageMap.get(key));
         }
         customDataStorage.flush();
     }
 
     @Override
-    public Map<String, String> loadData(@NotNull SBuild sBuild)
+    public Collection<HighlightData> loadData(@NotNull SBuild sBuild)
+    {
+        final List<HighlightData> ret = new ArrayList<>(0);
+        final CustomStorageMap customStorageMap = new CustomStorageMap(loadDataInternal(sBuild));
+        for (final String key : customStorageMap.keySet())
+        {
+            final String[] keyData = parseData(key);
+            ret.add(new HighlightData(keyData[KEY_INDEX], customStorageMap.getAsList(key),
+                                      valueOfOrDefault(keyData[LEVEL_INDEX], Level.class, Level.info),
+                                      valueOfOrDefault(keyData[BLOCK_INDEX], Block.class, Block.expanded),
+                                      valueOfOrDefault(keyData[ORDER_INDEX], Order.class, Order.none)));
+
+        }
+        return ret;
+    }
+
+    private Map<String, String> loadDataInternal(@NotNull SBuild sBuild)
     {
         if (sBuild == null || sBuild.getBuildType() == null)
         {

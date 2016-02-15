@@ -3,6 +3,8 @@ package com.jpfeffer.teamcity.highlighter.service;
 import jetbrains.buildServer.serverSide.SBuild;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
+
 /**
  * <p>Interface defining operations on data.</p>
  *
@@ -23,7 +25,7 @@ public interface DataStoreService<T>
      * Loads {@link T} data for the given {@link SBuild} instance.
      *
      * @param sBuild {@link SBuild} representing currently running build to get the data for.
-     * @return {@link T} data loaded for the build.
+     * @return {@link java.util.Collection} of {@link T} data loaded for the build.
      */
-    T loadData(@NotNull SBuild sBuild);
+    Collection<T> loadData(@NotNull SBuild sBuild);
 }

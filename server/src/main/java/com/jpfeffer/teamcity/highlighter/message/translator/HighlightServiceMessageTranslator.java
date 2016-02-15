@@ -1,5 +1,9 @@
 package com.jpfeffer.teamcity.highlighter.message.translator;
 
+import com.jpfeffer.teamcity.highlighter.domain.Block;
+import com.jpfeffer.teamcity.highlighter.domain.HighlightData;
+import com.jpfeffer.teamcity.highlighter.domain.Level;
+import com.jpfeffer.teamcity.highlighter.domain.Order;
 import com.jpfeffer.teamcity.highlighter.service.DataStoreService;
 import jetbrains.buildServer.messages.BuildMessage1;
 import jetbrains.buildServer.messages.serviceMessages.ServiceMessage;
@@ -12,6 +16,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+
+import static com.jpfeffer.teamcity.highlighter.util.Util.valueOfOrDefault;
 
 /**
  * <p>{@link ServiceMessageTranslator} that catches TeamCity messages with name {@link
@@ -34,7 +40,9 @@ public class HighlightServiceMessageTranslator implements ServiceMessageTranslat
     private String messageName;
 
     @Resource
-    private DataStoreService<Map<String, String>> dataStoreService;
+    private Map<String, DataStoreService<HighlightData>> dataStoreServices;
+
+    private String activeDataStoreName;
 
     @NotNull
     @Override
@@ -48,7 +56,12 @@ public class HighlightServiceMessageTranslator implements ServiceMessageTranslat
             return Arrays.asList(buildMessage1);
         }
 
-        dataStoreService.saveData(sRunningBuild, messageAttributes);
+        dataStoreServices.get(activeDataStoreName)
+                .saveData(sRunningBuild, new HighlightData(messageAttributes.get("title"),
+                                                           Arrays.asList(messageAttributes.get("text")),
+                                                           valueOfOrDefault(messageAttributes.get("level"), Level.class, Level.info),
+                                                           valueOfOrDefault(messageAttributes.get("block"), Block.class, Block.expanded),
+                                                           valueOfOrDefault(messageAttributes.get("order"), Order.class, Order.none)));
 
         return Arrays.asList(buildMessage1);
     }
@@ -63,5 +76,10 @@ public class HighlightServiceMessageTranslator implements ServiceMessageTranslat
     public void setMessageName(String messageName)
     {
         this.messageName = messageName;
+    }
+
+    public void setActiveDataStoreName(String activeDataStoreName)
+    {
+        this.activeDataStoreName = activeDataStoreName;
     }
 }

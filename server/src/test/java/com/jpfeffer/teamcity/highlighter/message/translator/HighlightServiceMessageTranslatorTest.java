@@ -1,6 +1,7 @@
 package com.jpfeffer.teamcity.highlighter.message.translator;
 
 import com.google.common.collect.ImmutableMap;
+import com.jpfeffer.teamcity.highlighter.domain.HighlightData;
 import com.jpfeffer.teamcity.highlighter.service.DataStoreService;
 import jetbrains.buildServer.messages.BuildMessage1;
 import jetbrains.buildServer.messages.serviceMessages.ServiceMessage;
@@ -35,19 +36,24 @@ public class HighlightServiceMessageTranslatorTest
     private HighlightServiceMessageTranslator highlightServiceMessageTranslator;
 
     @Mock
-    private DataStoreService<Map<String, String>> dataStoreService;
+    private DataStoreService<HighlightData> dataStoreService;
     @Mock
     private SRunningBuild sRunningBuild;
     @Mock
     private BuildMessage1 buildMessage1;
     @Mock
     private ServiceMessage serviceMessage;
+    @Mock
+    private HighlightData highlightData;
 
     @Before
     public void setUp() throws Exception
     {
         highlightServiceMessageTranslator = new HighlightServiceMessageTranslator();
-        setField(highlightServiceMessageTranslator, "dataStoreService", dataStoreService);
+        final HashMap<String, DataStoreService> serviceHashMap = new HashMap<>();
+        serviceHashMap.put("ds", dataStoreService);
+        setField(highlightServiceMessageTranslator, "dataStoreServices", serviceHashMap);
+        highlightServiceMessageTranslator.setActiveDataStoreName("ds");
     }
 
     @Test
@@ -57,7 +63,7 @@ public class HighlightServiceMessageTranslatorTest
         final List<BuildMessage1> ret = highlightServiceMessageTranslator.translate(sRunningBuild, buildMessage1, serviceMessage);
 
         assertThat(Arrays.asList(buildMessage1).equals(ret), is(true));
-        verify(dataStoreService).saveData(eq(sRunningBuild), eq(TEST_MAP));
+        verify(dataStoreService).saveData(eq(sRunningBuild), any(HighlightData.class));
     }
 
     @Test
@@ -67,7 +73,7 @@ public class HighlightServiceMessageTranslatorTest
         final List<BuildMessage1> ret = highlightServiceMessageTranslator.translate(sRunningBuild, buildMessage1, serviceMessage);
 
         assertThat(Arrays.asList(buildMessage1).equals(ret), is(true));
-        verify(dataStoreService, never()).saveData(eq(sRunningBuild), eq(new HashMap<String, String>(0)));
+        verify(dataStoreService, never()).saveData(eq(sRunningBuild), any(HighlightData.class));
     }
 
     @Test

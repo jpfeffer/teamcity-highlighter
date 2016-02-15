@@ -6,11 +6,36 @@
 
     <bean id="highlighterPageExtension" class="com.jpfeffer.teamcity.highlighter.extension.HighlighterPageExtension"
           init-method="register">
+        <property name="activeDataStoreName" value="${active.data.store.name}"/>
     </bean>
     <bean id="highlightServiceMessageTranslator"
           class="com.jpfeffer.teamcity.highlighter.message.translator.HighlightServiceMessageTranslator">
         <property name="messageName" value="highlight"/>
+        <property name="activeDataStoreName" value="${active.data.store.name}"/>
     </bean>
     <bean id="teamcityCustomDataStoreService"
           class="com.jpfeffer.teamcity.highlighter.service.TeamCityCustomDataStoreService"/>
+    <bean id="mySQLDataStoreService" class="com.jpfeffer.teamcity.highlighter.service.MySQLDataStoreService"/>
+
+    <bean id="mySQLDBAdapter" class="com.jpfeffer.teamcity.highlighter.service.adapter.MySQLDBAdapter">
+        <property name="driver" value="${jdbc.mysql.driver}"/>
+        <property name="url" value="${jdbc.mysql.url}"/>
+        <property name="user" value="${jdbc.mysql.user}"/>
+        <property name="password" value="${jdbc.mysql.password}"/>
+    </bean>
+
+    <bean id="highlighterDataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close">
+        <property name="driverClass" value="${jdbc.mysql.driver}" />
+        <property name="jdbcUrl" value="${jdbc.mysql.url}/${db.name}" />
+        <property name="user" value="${jdbc.mysql.user}" />
+      <property name="password" value="${jdbc.mysql.password}" />
+      <property name="minPoolSize" value="${c3p0.min.pool.size}" />
+        <property name="maxPoolSize" value="${c3p0.max.pool.size}" />
+      <property name="maxStatements" value="${c3p0.max.statements}" />
+      <property name="testConnectionOnCheckout" value="${c3p0.test.connection.on.checkout}" />
+    </bean>
+
+    <bean id="config" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="location" value="file:/opt/teamcity-data/config/_highlighter/highlighter.properties" />
+    </bean>
 </beans>

@@ -1,21 +1,12 @@
 package com.jpfeffer.teamcity.highlighter.model;
 
-import com.jpfeffer.teamcity.highlighter.domain.Block;
 import com.jpfeffer.teamcity.highlighter.domain.HighlightData;
-import com.jpfeffer.teamcity.highlighter.domain.HighlightDataMap;
-import com.jpfeffer.teamcity.highlighter.domain.Level;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-
-import static com.jpfeffer.teamcity.highlighter.domain.HighlightDataMap.getKeyData;
-import static com.jpfeffer.teamcity.highlighter.domain.HighlightDataMap.BLOCK_INDEX;
-import static com.jpfeffer.teamcity.highlighter.domain.HighlightDataMap.KEY_INDEX;
-import static com.jpfeffer.teamcity.highlighter.domain.HighlightDataMap.LEVEL_INDEX;
-import static com.jpfeffer.teamcity.highlighter.util.Util.valueOfOrDefault;
 
 /**
  * <p>Model holding highlight data for TeamCity UI.</p>
@@ -32,24 +23,11 @@ public class HighlightDataModel
 {
     private final List<HighlightData> highlightData;
 
-    public HighlightDataModel(Map<String, String> messageData)
+    public HighlightDataModel(Collection<HighlightData> highlightData)
     {
-        highlightData = new ArrayList<>();
+        this.highlightData = new ArrayList<>(highlightData);
 
-        if (messageData != null && !messageData.isEmpty())
-        {
-            final HighlightDataMap highlightDataMap = new HighlightDataMap(messageData);
-            for (final String key : highlightDataMap.keySet())
-            {
-                final String[] keyData = getKeyData(key);
-
-                highlightData.add(new HighlightData(keyData[KEY_INDEX], highlightDataMap.getAsCollection(key),
-                                                    valueOfOrDefault(keyData[LEVEL_INDEX], Level.class, Level.info),
-                                                    valueOfOrDefault(keyData[BLOCK_INDEX], Block.class, Block.expanded)));
-            }
-        }
-
-        Collections.sort(highlightData, new Comparator<HighlightData>()
+        Collections.sort(this.highlightData, new Comparator<HighlightData>()
         {
             @Override
             public int compare(HighlightData o1, HighlightData o2)

@@ -8,7 +8,7 @@ allprojects {
 
 	description = 'TeamCity Highlighter Plugin'
 	group = 'org.jetbrains.teamcity.plugins'
-	version = '1.0'
+	version = '1.1'
 
     repositories {
         mavenCentral()
@@ -19,8 +19,9 @@ allprojects {
 }
 
 project.ext {
-	teamcityVersion = '9.0.3'
+	teamcityVersion = '9.1.6'
 	springVersion = "3.1.2.RELEASE"
+	c3p0Version = "0.9.5.2"
 }
 
 subprojects {
@@ -38,6 +39,7 @@ subprojects {
 
 	dependencies {
 		compile "com.intellij:annotations:7.0.3"
+		compile "com.mchange:c3p0:${c3p0Version}"
 		compile "org.apache.tomcat:servlet-api:6.0.36"
         compile "org.jetbrains.teamcity:common-api:${teamcityVersion}"
 		compile "org.springframework:spring-webmvc:${springVersion}"
@@ -45,6 +47,8 @@ subprojects {
         testCompile "junit:junit:4.11"
         testCompile "org.mockito:mockito-all:1.10.19"
         testCompile "org.springframework:spring-test:${springVersion}"
+        archives "mysql:mysql-connector-java:5.1.38"
+        archives "com.mchange:c3p0:${c3p0Version}"
 	}
 }
 

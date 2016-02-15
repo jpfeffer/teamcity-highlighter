@@ -1,5 +1,8 @@
 package com.jpfeffer.teamcity.highlighter.service;
 
+import com.jpfeffer.teamcity.highlighter.domain.Block;
+import com.jpfeffer.teamcity.highlighter.domain.HighlightData;
+import com.jpfeffer.teamcity.highlighter.domain.Level;
 import jetbrains.buildServer.serverSide.CustomDataStorage;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -9,6 +12,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,7 +31,7 @@ import static org.mockito.Mockito.*;
 @RunWith(MockitoJUnitRunner.class)
 public class TeamCityCustomDataStoreServiceTest
 {
-    private DataStoreService<Map<String, String>> dataStoreService;
+    private DataStoreService<HighlightData> dataStoreService;
 
     private static final Map<String, String> TEST_MAP = new HashMap<>();
     static
@@ -44,6 +48,8 @@ public class TeamCityCustomDataStoreServiceTest
     private SBuildType sBuildType;
     @Mock
     private CustomDataStorage customDataStorage;
+    @Mock
+    private HighlightData highlightData;
 
     @Before
     public void setUp() throws Exception
@@ -58,7 +64,11 @@ public class TeamCityCustomDataStoreServiceTest
     @Test
     public void testSaveData() throws Exception
     {
-        dataStoreService.saveData(sBuild, TEST_MAP);
+        when(highlightData.getKey()).thenReturn("Some title");
+        when(highlightData.getSingleValue()).thenReturn("Some text");
+        when(highlightData.getLevel()).thenReturn(Level.error);
+        when(highlightData.getBlock()).thenReturn(Block.collapsed);
+        dataStoreService.saveData(sBuild, highlightData);
 
         verify(customDataStorage).putValue(eq("text"), eq("Some text"));
         verify(customDataStorage).putValue(eq("title"), eq("Some title"));
@@ -72,7 +82,7 @@ public class TeamCityCustomDataStoreServiceTest
     {
         when(sBuild.getBuildType()).thenReturn(null);
 
-        dataStoreService.saveData(sBuild, new HashMap<String, String>(0));
+        dataStoreService.saveData(sBuild, highlightData);
 
         verify(customDataStorage, never()).putValue(anyString(), anyString());
         verify(customDataStorage, never()).flush();
@@ -81,7 +91,7 @@ public class TeamCityCustomDataStoreServiceTest
     @Test
     public void testSaveData_empty_data() throws Exception
     {
-        dataStoreService.saveData(sBuild, new HashMap<String, String>(0));
+        dataStoreService.saveData(sBuild, highlightData);
 
         verify(customDataStorage, never()).putValue(anyString(), anyString());
         verify(customDataStorage, never()).flush();
@@ -90,9 +100,8 @@ public class TeamCityCustomDataStoreServiceTest
     @Test
     public void testSaveData_no_title_in_data() throws Exception
     {
-        final HashMap<String, String> data = new HashMap<>(1);
-        data.put("text", "Testing...");
-        dataStoreService.saveData(sBuild, data);
+        when(highlightData.getKey()).thenReturn(null);
+        dataStoreService.saveData(sBuild, highlightData);
 
         verify(customDataStorage, never()).putValue(anyString(), anyString());
         verify(customDataStorage, never()).flush();
@@ -101,16 +110,16 @@ public class TeamCityCustomDataStoreServiceTest
     @Test
     public void testLoadData() throws Exception
     {
-        final Map<String, String> data = dataStoreService.loadData(sBuild);
+        final Collection<HighlightData> data = dataStoreService.loadData(sBuild);
 
-        assertThat(data.equals(TEST_MAP), is(true));
+        assertThat(data.size(), is(TEST_MAP.size()));
     }
 
     @Test
     public void testLoadData_null_sbuild_type() throws Exception
     {
         when(sBuild.getBuildType()).thenReturn(null);
-        final Map<String, String> data = dataStoreService.loadData(sBuild);
+        final Collection<HighlightData> data = dataStoreService.loadData(sBuild);
 
         assertThat(data.isEmpty(), is(true));
         verify(customDataStorage, never()).getValues();
