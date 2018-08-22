@@ -23,7 +23,7 @@ public class ArtifactsBasedDataStoreService implements DataStoreService<Highligh
   private static final Logger LOG = Logger.getLogger(ArtifactsBasedDataStoreService.class.getName());
 
   private final XStreamHolder myXStreamHolder = new XStreamHolder();
-  private final static String DATA_FILE_PATH = ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR + "/pluginData/highlighter/highlighter.xml";
+  public final static String DATA_FILE_PATH = ArtifactsConstants.TEAMCITY_ARTIFACTS_DIR + "/pluginData/highlighter/highlighter.xml";
 
   @Override
   public void saveData(@NotNull SBuild sBuild, HighlightData data) {
@@ -47,12 +47,18 @@ public class ArtifactsBasedDataStoreService implements DataStoreService<Highligh
     String serialized = writer.toString();
 
     final File filePath = getDataFilePath(sBuild);
+    final File parentFile = filePath.getParentFile();
+    if (!parentFile.isDirectory()) {
+      if (!parentFile.mkdirs()) {
+        LOG.warning("Could not create directory for highlighter plugin data: " + parentFile.getAbsolutePath());
+      }
+    }
     try {
       final File newFile = new File(filePath.getParent(), filePath.getName() + ".new"); // save as new to prevent existing data corruption if there is a lack of disk space
       FileUtil.writeFile(newFile, serialized, "UTF-8");
       FileUtil.rename(newFile, filePath);
     } catch (Exception e) {
-      LOG.warning("Could not save highlighter plugin data under the build artifacts directory: " + filePath + ", error: " + e.toString());
+      LOG.warning("Could not save highlighter plugin data under the build artifacts directory: " + filePath.getAbsolutePath() + ", error: " + e.toString());
     }
   }
 
@@ -72,9 +78,10 @@ public class ArtifactsBasedDataStoreService implements DataStoreService<Highligh
 
     try {
       String data = FileUtil.readText(filePath, "UTF-8");
+      //noinspection unchecked
       return (List<HighlightData>) getXStream().fromXML(data);
     } catch (Exception e) {
-      LOG.warning("Could not load highlighter plugin data from the build artifacts directory: " + filePath + ", error: " + e.toString());
+      LOG.warning("Could not load highlighter plugin data from the build artifacts directory: " + filePath.getAbsolutePath() + ", error: " + e.toString());
     }
     return new ArrayList<>();
   }

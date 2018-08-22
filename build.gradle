@@ -47,6 +47,7 @@ subprojects {
         testCompile "junit:junit:4.11"
         testCompile "org.mockito:mockito-all:1.10.19"
         testCompile "org.springframework:spring-test:${springVersion}"
+		testCompile "org.jetbrains.teamcity:tests-support:${teamcityVersion}"
         archives "mysql:mysql-connector-java:5.1.38"
         archives "com.mchange:c3p0:${c3p0Version}"
 	}
