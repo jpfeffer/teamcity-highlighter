@@ -16,6 +16,7 @@
     <bean id="teamcityCustomDataStoreService"
           class="com.jpfeffer.teamcity.highlighter.service.TeamCityCustomDataStoreService"/>
     <bean id="mySQLDataStoreService" class="com.jpfeffer.teamcity.highlighter.service.MySQLDataStoreService"/>
+    <bean id="artifactsBasedDataStoreService" class="com.jpfeffer.teamcity.highlighter.service.ArtifactsBasedDataStoreService"/>
 
     <bean id="mySQLDBAdapter" class="com.jpfeffer.teamcity.highlighter.service.adapter.MySQLDBAdapter">
         <property name="driver" value="${jdbc.mysql.driver}"/>
